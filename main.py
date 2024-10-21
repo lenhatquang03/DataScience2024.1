@@ -31,12 +31,12 @@ preds_dict = {"Bathrooms": ["Quarter", "Year", "District", "Price (billion VND)"
              "Living Rooms": ["Quarter", "Year", "District", "Price (billion VND)", "Property Type", "Law Document"], 
              "Area (m2)": ["Quarter", "Year", "District", "Price (billion VND)", "Property Type", "Law Document"]}
 
-si = SingleImputer(strategy = {"Bathrooms": "pmm", 
-                                 "Floors": "pmm", 
-                                 "Entrance (m2)": "pmm", 
-                                 "Bedrooms": "pmm", 
-                                 "Living Rooms": "pmm", 
-                                 "Area (m2)": "pmm"}, predictors= preds_dict, return_list=True)
+si = SingleImputer(strategy = {"Bathrooms": "mode", 
+                                 "Floors": "mode", 
+                                 "Entrance (m2)": "mode", 
+                                 "Bedrooms": "mode", 
+                                 "Living Rooms": "mode", 
+                                 "Area (m2)": "mode"}, predictors= preds_dict)
 
 imputed_data = si.fit_transform(data)
 imputed_data.to_csv("ModeImputedData.csv")
