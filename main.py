@@ -38,9 +38,10 @@ preds_dict = {"Bathrooms": ["Quarter", "Year", "District", "Property Type", "Law
              "Area (m2)": ["Quarter", "Year", "District", "Property Type", "Law Document"]}
 
 si = SingleImputer(strategy = strategies, predictors= preds_dict)
-imputed_data = si.fit_transform(cleaner.df)
-# imputed_data.to_csv("ModeImputedDataWithIDs.csv")
+
+imputed_data = si.fit_transform(data)
+# imputed_data.to_csv("ModeImputedData.csv")
 
 # Including some features from the original preprocessed dataset
 final = pd.merge(imputed_data, reference[["ID", "Post Date", "Address"]], how="inner", on="ID").drop("Unnamed: 0", axis=1)
-# final.to_csv("DisplayedData.csv")
+# final.to_csv("DisplayedData.csv"
