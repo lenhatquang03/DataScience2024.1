@@ -12,9 +12,15 @@ data = pd.concat([apartment, private_house, town_house, villa], ignore_index=Tru
 # Start the preprocess for imputations
 cleaner = CleanData(data)
 cleaner.preprocessing()
+
+# reference: Preprocessed dataset where only rows containing "Đang thương lượng" or np.NaN values are dropped.
+reference = cleaner.df
+# reference.to_csv("preprocessed.csv")
+
 nan_percentage = cleaner.nan_percentage()
 cleaner.drop_field(nan_percentage, cutoff=60)
 cleaner.fill_predictors()
+# cleaner.df.to_csv("UnImputedDataWithIDs.csv")
 
 # Data imputations with the "mode" strategy
 strategies = {"Bathrooms": "mode", 
@@ -24,19 +30,17 @@ strategies = {"Bathrooms": "mode",
               "Living Rooms": "mode", 
               "Area (m2)": "mode"}
 
-preds_dict = {"Bathrooms": ["Quarter", "Year", "District", "Price (billion VND)", "Property Type", "Law Document"], 
-             "Floors": ["Quarter", "Year", "District", "Price (billion VND)", "Property Type", "Law Document"],
-             "Entrance (m2)": ["Quarter", "Year", "District", "Price (billion VND)", "Property Type", "Law Document"],
-             "Bedrooms": ["Quarter", "Year", "District", "Price (billion VND)", "Property Type", "Law Document"],
-             "Living Rooms": ["Quarter", "Year", "District", "Price (billion VND)", "Property Type", "Law Document"], 
-             "Area (m2)": ["Quarter", "Year", "District", "Price (billion VND)", "Property Type", "Law Document"]}
+preds_dict = {"Bathrooms": ["Quarter", "Year", "District", "Property Type", "Law Document"], 
+             "Floors": ["Quarter", "Year", "District", "Property Type", "Law Document"],
+             "Entrance (m2)": ["Quarter", "Year", "District", "Property Type", "Law Document"],
+             "Bedrooms": ["Quarter", "Year", "District", "Property Type", "Law Document"],
+             "Living Rooms": ["Quarter", "Year", "District", "Property Type", "Law Document"], 
+             "Area (m2)": ["Quarter", "Year", "District", "Property Type", "Law Document"]}
 
-si = SingleImputer(strategy = {"Bathrooms": "pmm", 
-                                 "Floors": "pmm", 
-                                 "Entrance (m2)": "pmm", 
-                                 "Bedrooms": "pmm", 
-                                 "Living Rooms": "pmm", 
-                                 "Area (m2)": "pmm"}, predictors= preds_dict, return_list=True)
+si = SingleImputer(strategy = strategies, predictors= preds_dict)
+imputed_data = si.fit_transform(cleaner.df)
+# imputed_data.to_csv("ModeImputedDataWithIDs.csv")
 
-imputed_data = si.fit_transform(data)
-imputed_data.to_csv("ModeImputedData.csv")
+# Including some features from the original preprocessed dataset
+final = pd.merge(imputed_data, reference[["ID", "Post Date", "Address"]], how="inner", on="ID").drop("Unnamed: 0", axis=1)
+# final.to_csv("DisplayedData.csv")

@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from DataCleaning.ExtractingFeatures import ExtractingFeatures
+from ExtractingFeatures import ExtractingFeatures
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
 import requests
@@ -16,6 +16,9 @@ class CleanData:
     def preprocessing(self) -> None:
         """ Data is transformed to categorical and numerical types for imputations """
         imputing_data = pd.DataFrame()
+        imputing_data["ID"] = [_ for _ in range(len(self.df))]
+        imputing_data["Address"] = self.df["address"].apply(ExtractingFeatures.textExtract)
+        imputing_data["Post Date"] = self.df["post_update"].apply(lambda lst: ExtractingFeatures.dateExtract(lst, component="Date")) 
         imputing_data["Quarter"] = self.df["post_update"].apply(lambda lst: ExtractingFeatures.dateExtract(lst, component="quarter"))
         # imputing_data["Day"] = self.df["post_update"].apply(lambda lst: ExtractingFeatures.dateExtract(lst, component="day"))
         # imputing_data["Month"] = self.df["post_update"].apply(lambda lst: ExtractingFeatures.dateExtract(lst, component="month"))
@@ -62,22 +65,22 @@ class CleanData:
             if pd.isna(district) and (not pd.isna(lat)) and (not pd.isna(lng)):
                 url = f"https://geocode.maps.co/reverse?lat={lat}&lon={lng}&api_key={CleanData.API_KEY}"
                 response = requests.get(url)
-                self.df["District"][i] = response.json()["address"].get("suburb")
+                self.df.loc[i, "District"] = response.json()["address"].get("suburb")
                 time.sleep(1)
             
         self.df.dropna(subset=["District"], inplace=True, ignore_index=True)
-        self.df["District"] = self.df["District"].apply(lambda x: x.lower().split("district")[0].strip()).apply(lambda txt: txt.replace('đ', 'd'))
+        self.df["District"] = self.df["District"].apply(lambda x: x.lower().split("district")[0].strip()).apply(lambda txt: txt.replace('đ', 'd')).apply(ExtractingFeatures.remove_vietnamese_accents)
         for i in range(len(self.df.index)):
             if self.df["District"][i] in ["an phu ward", "go vap", "son tra", "phu nhuan", "hai chau", "bai chay", "cooksville", "binh thanh", "phuong son phong", "binh tan", "ha phong"] or self.df["District"][i] == '':
-                self.df["District"][i] = np.NaN
+                self.df.loc[i, "District"] = np.NaN
             elif self.df["District"][i] in ["xa an khanh", "xa van canh"]:
-                self.df["District"][i] = "hoai duc"
+                self.df.loc[i, "District"] = "hoai duc"
             elif self.df["District"][i] == "xa dang xa":
-                self.df["District"][i] = "gia lam"
+                self.df.loc[i, "District"] = "gia lam"
             elif self.df["District"][i] == "kim chung commune":
-                self.df["District"][i] = "dong anh"
+                self.df.loc[i, "District"] = "dong anh"
             elif self.df["District"][i] == "duc giang commune":
-                self.df["District"][i] = "long bien"
+                self.df.loc[i, "District"] = "long bien"
         
         self.df.dropna(subset=["District"], inplace=True, ignore_index=True)
         self.df.drop(columns=["Latitude", "Longitude"], inplace= True)

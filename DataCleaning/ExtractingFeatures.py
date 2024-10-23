@@ -3,13 +3,13 @@ import regex as re
 import math
 import unicodedata
 import pandas as pd
+from datetime import datetime
 
 class ExtractingFeatures:
     DISTRICTS = ["ba đình", "cầu giấy", "hoàn kiếm", "hai bà trưng", "hoàng mai", "đống đa", "tây hồ", "thanh xuân", "hà đông", "long biên", "ba vì", "chương mỹ", "đan phượng", "đông anh", "gia lâm", "hoài đức", "mê linh", "mỹ đức", "phú xuyên", "phúc thọ", "quốc oai", "sóc sơn", "thạch thất", "thanh oai", "thanh trì", "thường tín", "ứng hòa", "sơn tây"]
-    QUARTERS = [(1, (1, 2, 3)), (2, (4, 5, 6)), (3, (7, 8, 9)), (4, (10, 11, 12))]
     
     @staticmethod
-    def remove_vietnamses_accents(text) -> any:
+    def remove_vietnamese_accents(text) -> any:
         if pd.isna(text):
             return
         text = unicodedata.normalize("NFD", text)
@@ -21,15 +21,28 @@ class ExtractingFeatures:
         """ Extract phrases in a single line """
         if len(lst) == 0:
             return np.NaN
-        return ExtractingFeatures.remove_vietnamses_accents(lst[0].strip())
+        return ExtractingFeatures.remove_vietnamese_accents(lst[0].strip())
+    
+    @staticmethod
+    def textExtract(lst: list) -> str:
+        if len(lst) == 0:
+            return np.NaN
+        rawText = list(map(str.strip, lst))
+        return ExtractingFeatures.remove_vietnamese_accents(''.join(txt for txt in rawText))
     
     @staticmethod
     def law_doc(lst: list) -> str:
         """ Check if the property has already had an attached law document ot not """
         if len(lst) == 0:
-            return "not provided"
+            return "Not provided"
         else:
-            return ExtractingFeatures.phraseExtract(lst)
+            document = ExtractingFeatures.phraseExtract(lst)
+            if document in ["So hong", "Hop đong", "Giay đo", "Giay to hop le", "Giay tay", "Chu quyen tu nhan"]:
+                return "Yes"
+            elif document == "Đang hop thuc hoa":
+                return "In Progress"
+            elif document == "Khong xac đinh":
+                return "Not Provided"
         
     @staticmethod
     def districtExtract(lst: list) -> str:
@@ -44,7 +57,7 @@ class ExtractingFeatures:
 
         for district in ExtractingFeatures.DISTRICTS:
             if district in raw_address:
-                return ExtractingFeatures.remove_vietnamses_accents(district)
+                return ExtractingFeatures.remove_vietnamese_accents(district)
         return np.NaN
     
     @staticmethod
@@ -53,7 +66,7 @@ class ExtractingFeatures:
             return np.NaN
         
         rawType = lst[0].strip()
-        return ExtractingFeatures.remove_vietnamses_accents(rawType.split("Bán ")[1])
+        return ExtractingFeatures.remove_vietnamese_accents(rawType.split("Bán ")[1])
 
     @staticmethod
     def dateExtract(lst: list, component: str) -> any:
@@ -72,7 +85,7 @@ class ExtractingFeatures:
         elif component == "quarter":
             return math.ceil(int(day_month_year[1])/3)
         else:
-            return rawDate
+            return datetime(int(day_month_year[-1]), int(day_month_year[1]), int(day_month_year[0]))
     
     @staticmethod
     def priceExtract(lst: list) -> float:
