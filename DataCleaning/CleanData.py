@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 class CleanData:
-    API_KEY = "671388e63d5c3445992712nor7c307e"
+    API_KEY = "your_api_key"
+    # Free Geocoding API available at https://geocode.maps.co/
     def __init__(self, df: pd.DataFrame):
         self.df = df
             
