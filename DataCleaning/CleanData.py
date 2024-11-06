@@ -4,12 +4,14 @@ from ExtractingFeatures import ExtractingFeatures
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
 import requests
+import json
 import time
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 class CleanData:
-    API_KEY = "671388e63d5c3445992712nor7c307e"
+    GEOCODE_API_KEY = "YOUR_GEOCODE_APi"
+    MAPQUEST_API_KEY = "YOUR_MAPQUEST_API"
     def __init__(self, df: pd.DataFrame):
         self.df = df
             
@@ -55,20 +57,23 @@ class CleanData:
     
     def fill_predictors(self) -> None:
         """ After dropping all fields with a high percentage of NaN values from the preprocessed DataFrame, we want to excluded all properties that are not in Hanoi and create completed case data for our predictors in the imputation process. 
-        In our case, the predictors are 'Quarter', 'Year', 'District', 'Price (billion VND)', and 'Property Type'. Only 'District' requires further processing. 
-        Also, other fields not used in the imputation process will be dropped. """
+        In our case, the predictors are 'Quarter', 'Year', 'District', and 'Property Type'. Only 'District' requires further processing. 
+        We also need to fill in missing values for the Latitude and Longitude columns based on the District field.
+        """
+        # Imputing missing District values by converting coordinates to addresses
         for i in range(len(self.df.index)):
             district = self.df.iloc[i]["District"]
             lat = self.df.iloc[i]["Latitude"]
             lng = self.df.iloc[i]["Longitude"]
-            print(self.df.info())
             if pd.isna(district) and (not pd.isna(lat)) and (not pd.isna(lng)):
-                url = f"https://geocode.maps.co/reverse?lat={lat}&lon={lng}&api_key={CleanData.API_KEY}"
+                url = f"https://geocode.maps.co/reverse?lat={lat}&lon={lng}&api_key={CleanData.GEOCODE_API_KEY}"
                 response = requests.get(url)
                 self.df.loc[i, "District"] = response.json()["address"].get("suburb")
                 time.sleep(1)
             
         self.df.dropna(subset=["District"], inplace=True, ignore_index=True)
+        
+        # Removing data points that are not in Hanoi
         self.df["District"] = self.df["District"].apply(lambda x: x.lower().split("district")[0].strip()).apply(lambda txt: txt.replace('đ', 'd')).apply(ExtractingFeatures.remove_vietnamese_accents)
         for i in range(len(self.df.index)):
             if self.df["District"][i] in ["an phu ward", "go vap", "son tra", "phu nhuan", "hai chau", "bai chay", "cooksville", "binh thanh", "phuong son phong", "binh tan", "ha phong"] or self.df["District"][i] == '':
@@ -83,7 +88,19 @@ class CleanData:
                 self.df.loc[i, "District"] = "long bien"
         
         self.df.dropna(subset=["District"], inplace=True, ignore_index=True)
-        self.df.drop(columns=["Latitude", "Longitude"], inplace= True)
+        
+        # Imputing missing Latitude and Longitude values by converting addresses to coordinates
+        for i in range(len(self.df)):
+            if pd.isnull(self.df.at[i, "Latitude"]) or pd.isnull(self.df.at[i, "Longitude"]):
+                parameters = {"key": CleanData.MAPQUEST_API_KEY, 
+                      "location": self.df.at[i, "Address"]
+                      }
+                response = requests.get("https://www.mapquestapi.com/geocoding/v1/address", params= parameters)
+                simplify = json.loads(response.text)["results"]
+                latitude = simplify[0]["locations"][0]["latLng"]["lat"]
+                longitude = simplify[0]["locations"][0]["latLng"]["lng"]
+                self.df.loc[i, "Latitude"] = latitude
+                self.df.loc[i, "Longitude"] = longitude
         return
     
     def numerical_convert(self, categorical_encoder) -> any:
