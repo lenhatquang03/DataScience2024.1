@@ -1,15 +1,16 @@
 from autoimpute.imputations import SingleImputer
 from DataCleaning.CleanData import CleanData
+from DataCleaning.AddtionalInfo import AdditionalInfo
 import pandas as pd
 
-# Reading the data and stack them 
+# READING THE DATA AND STACK THEM 
 apartment = pd.read_json("CafeLand/data/hanoi_apartment.json")
 private_house = pd.read_json("CafeLand/data/hanoi_private_house.json")
 town_house = pd.read_json("CafeLand/data/hanoi_town_house.json")
 villa = pd.read_json("CafeLand/data/hanoi_villa.json")
 data = pd.concat([apartment, private_house, town_house, villa], ignore_index=True)
 
-# Start the preprocess for imputations
+# START THE PRE-PROCESS FOR IMPUTATION
 cleaner = CleanData(data)
 cleaner.preprocessing()
 
@@ -20,9 +21,10 @@ reference = cleaner.df
 nan_percentage = cleaner.nan_percentage()
 cleaner.drop_field(nan_percentage, cutoff=60)
 cleaner.fill_predictors()
-# cleaner.df.to_csv("UnImputedDataWithIDs.csv")
+unimputed_data = cleaner.df
+# unimputed.to_csv("UnImputedDataWithIDs.csv")
 
-# Data imputations with the "mode" strategy
+# DATA IMPUTATION WITH THE "MODE" STRATEGY
 strategies = {"Bathrooms": "mode", 
               "Floors": "mode", 
               "Entrance (m2)": "mode", 
@@ -39,9 +41,14 @@ preds_dict = {"Bathrooms": ["Quarter", "Year", "District", "Property Type", "Law
 
 si = SingleImputer(strategy = strategies, predictors= preds_dict)
 
-imputed_data = si.fit_transform(data)
+imputed_data = si.fit_transform(unimputed_data)
 # imputed_data.to_csv("ModeImputedData.csv")
 
-# Including some features from the original preprocessed dataset
-final = pd.merge(imputed_data, reference[["ID", "Post Date", "Address"]], how="inner", on="ID").drop("Unnamed: 0", axis=1)
-# final.to_csv("DisplayedData.csv"
+# ADDING MORE INFORMATION BASED ON THE CLEANED DATA
+for i in range(len(imputed_data)):
+    extractor = AdditionalInfo(imputed_data.at[i, "Latitude"], imputed_data.at[i, "Longitude"])
+    imputed_data.loc[i, "Postal Code"] = extractor.extract_postal_code()
+    imputed_data.loc[i, "Place Rank"] = extractor.extract_place_rank()
+    imputed_data.loc[i, "Importance"] = extractor.extract_importance()
+imputed_data.dropna(ignore_index=True, inplace=True)
+# imputed_data.to_csv("final.csv")
