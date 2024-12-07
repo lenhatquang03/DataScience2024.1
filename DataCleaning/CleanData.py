@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from ExtractingFeatures import ExtractingFeatures
+from DataCleaning.ExtractingFeatures import ExtractingFeatures
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
 import requests

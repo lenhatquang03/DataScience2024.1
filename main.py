@@ -1,6 +1,7 @@
-from autoimpute.imputations import SingleImputer
 from DataCleaning.CleanData import CleanData
+from DataCleaning.Imputer import Imputer
 from DataCleaning.AddtionalInfo import AdditionalInfo
+from DataCleaning.Outliers import OutliersRemoval
 import pandas as pd
 
 # READING THE DATA AND STACK THEM 
@@ -22,27 +23,15 @@ nan_percentage = cleaner.nan_percentage()
 cleaner.drop_field(nan_percentage, cutoff=60)
 cleaner.fill_predictors()
 unimputed_data = cleaner.df
-# unimputed.to_csv("UnImputedDataWithIDs.csv")
 
 # DATA IMPUTATION WITH THE "MODE" STRATEGY
-strategies = {"Bathrooms": "mode", 
-              "Floors": "mode", 
-              "Entrance (m2)": "mode", 
-              "Bedrooms": "mode", 
-              "Living Rooms": "mode", 
-              "Area (m2)": "mode"}
-
-preds_dict = {"Bathrooms": ["Quarter", "Year", "District", "Property Type", "Law Document"], 
-             "Floors": ["Quarter", "Year", "District", "Property Type", "Law Document"],
-             "Entrance (m2)": ["Quarter", "Year", "District", "Property Type", "Law Document"],
-             "Bedrooms": ["Quarter", "Year", "District", "Property Type", "Law Document"],
-             "Living Rooms": ["Quarter", "Year", "District", "Property Type", "Law Document"], 
-             "Area (m2)": ["Quarter", "Year", "District", "Property Type", "Law Document"]}
-
-si = SingleImputer(strategy = strategies, predictors= preds_dict)
-
-imputed_data = si.fit_transform(unimputed_data)
-# imputed_data.to_csv("ModeImputedData.csv")
+imputer = Imputer(["Area (m2)", "Bathrooms", "Bedrooms"], unimputed_data)
+imputer.drop_minimal_variance()
+imputer.mice_imputer()
+imputer.pmm_imputer()
+imputer.update_unimputed_data() 
+    # Till this point, the unimputed is imputed
+imputed_data = imputer.unimputed_df
 
 # ADDING MORE INFORMATION BASED ON THE CLEANED DATA
 for i in range(len(imputed_data)):
@@ -51,4 +40,4 @@ for i in range(len(imputed_data)):
     imputed_data.loc[i, "Place Rank"] = extractor.extract_place_rank()
     imputed_data.loc[i, "Importance"] = extractor.extract_importance()
 imputed_data.dropna(ignore_index=True, inplace=True)
-# imputed_data.to_csv("final.csv")
+# imputed_data.to_csv("DataCleaning//data//quang.csv")
