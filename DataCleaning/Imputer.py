@@ -96,3 +96,5 @@ class Imputer:
         Replacing the unimputed_data with the imputed data
         '''
         self.unimputed_df.loc[:, self.fields_to_impute] = self.data_to_impute
+        for field in self.fields_to_impute:
+            self.unimputed_df[field] = self.unimputed_df[field].round().astype(int)
